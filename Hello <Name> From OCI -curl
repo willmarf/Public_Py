@@ -1,0 +1,26 @@
+import io
+import json
+import logging
+from urllib.parse import urlparse, parse_qs
+from fdk import response
+
+def handler(ctx, data: io.BytesIO = None):
+    try:
+        # Extract the query parameters from the request URL
+        request_url = ctx.RequestURL()
+        parsed_url = urlparse(request_url)
+        query_params = parse_qs(parsed_url.query)
+
+        # Get the 'name' query parameter
+        name = query_params.get("name", ["World"])[0]
+    except (Exception, ValueError) as ex:
+        logging.getLogger().info('error parsing json payload or query parameters: ' + str(ex))
+        name = "World"
+
+    logging.getLogger().info("Inside Python Hello World function")
+    return response.Response(
+        ctx, response_data=json.dumps(
+            {"message": "Hello " + name}),
+        headers={"Content-Type": "application/json"}
+    )
+
