@@ -1,0 +1,40 @@
+import io
+import json
+from urllib.parse import urlparse, parse_qs
+from gnews import GNews
+from fdk import response
+
+def handler(ctx, data: io.BytesIO = None):
+    try:
+        request_url = ctx.RequestURL()
+        parsed_url = urlparse(request_url)
+        query_params = parse_qs(parsed_url.query)
+        search_str = query_params.get("search", [None])[0]
+
+        if not search_str:
+            return response.Response(
+                ctx, 
+                response_data=json.dumps({"error": "Missing required search parameter"}),
+                headers={"Content-Type": "application/json"}
+            )
+
+        google_news = GNews(language='en', country='US', period='24h', max_results=10)
+        news_results = google_news.get_news(search_str)
+
+        # Format the news results into a structured JSON
+        formatted_results = [{'title': article['title'], 'url': article['url'], 'publisher': article['publisher']} for article in news_results]
+
+        return response.Response(
+            ctx, 
+            response_data=json.dumps(formatted_results),
+            headers={"Content-Type": "application/json"}
+        )
+
+    except Exception as ex:
+        return response.Response(
+            ctx, 
+            response_data=json.dumps({"error": "Error in processing request", "details": str(ex)}),
+            headers={"Content-Type": "application/json"}
+        )
+
+# You can test your function here with a mock context and data if needed
