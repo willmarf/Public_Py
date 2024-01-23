@@ -1,0 +1,154 @@
+import random
+
+class BlackjackGame:
+    def __init__(self):
+        self.deck = self.create_deck()
+        self.player_hands = [[]]  # Support multiple hands for splitting
+        self.dealer_hand = []
+        self.account_balance = 100
+        self.bet_amount = 10
+        self.current_hand_index = 0
+
+    def create_deck(self):
+        values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+       #### suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
+        return [value  for value in values]
+
+    def deal_card(self):
+        if not self.deck:
+            self.deck = self.create_deck()
+        return self.deck.pop(random.randint(0, len(self.deck) - 1))
+
+    def start_hand(self):
+        self.player_hands = [[self.deal_card(), self.deal_card()]]
+        self.dealer_hand = [self.deal_card()]
+        self.current_hand_index = 0
+        self.show_hands()
+        self.prompt_action()
+
+    def show_hands(self):
+        player_hand = self.player_hands[self.current_hand_index]
+        print("Your Hand:", '-'.join(player_hand), "Total:", self.calculate_hand_value(player_hand))
+        print("Dealer Shows:", self.dealer_hand[0])
+        if self.calculate_hand_value(player_hand) == 21 and self.current_hand_index == 0:
+            print('Blacjack!! You Win!!')
+            self.account_balance += (self.bet_amount * 1.5)
+            self.resolve_game()
+            
+    def prompt_action(self):
+        actions = ["Hit", "Stand"]
+        if self.can_split():
+            actions.append("Split")
+        if self.current_hand_index == 0:  # Only allow double on the first hand
+            actions.append("Double")
+
+        action = input(f"Choose an action ({', '.join(actions)}): ").lower()
+        if action == 'hit':
+            self.hit()
+        elif action == 'stand':
+            self.stand()
+        elif action == 'split' and "Split" in actions:
+            self.split()
+        elif action == 'double' and "Double" in actions:
+            self.double_down()
+        else:
+            print("Invalid action. Please choose again.")
+            self.prompt_action()
+
+    def can_split(self):
+        hand = self.player_hands[self.current_hand_index]
+        return len(hand) == 2 and hand[0].split(' ')[0] == hand[1].split(' ')[0]
+
+    def hit(self):
+        self.player_hands[self.current_hand_index].append(self.deal_card())
+        self.show_hands()
+        hand_value = self.calculate_hand_value(self.player_hands[self.current_hand_index])
+        if hand_value > 21:
+            print("Bust! You lose this hand.")
+            self.account_balance -= self.bet_amount
+            if len(self.player_hands) > 1 and self.current_hand_index < len(self.player_hands) - 1:
+                self.current_hand_index += 1
+                self.show_hands()
+                self.prompt_action()
+            else:
+                self.resolve_game()
+        else:
+            self.prompt_action()
+
+    def stand(self):
+        self.next_hand_or_resolve_game()
+
+    def split(self):
+        hand = self.player_hands[self.current_hand_index]
+        self.player_hands.append([hand.pop()])
+        self.player_hands[self.current_hand_index].append(self.deal_card())
+        self.player_hands[-1].append(self.deal_card())
+        self.show_hands()
+        self.prompt_action()
+
+    def double_down(self):
+        self.bet_amount *= 2
+        self.player_hands[self.current_hand_index].append(self.deal_card())
+        self.show_hands()
+        self.stand()  # Player stands after doubling down
+
+    def calculate_hand_value(self, hand):
+        value = 0
+        aces = 0
+        for card in hand:
+            if card[0] in ['J', 'Q', 'K']:
+                value += 10
+            elif card[0] == 'A':
+                aces += 1
+                value += 11
+            else:
+                value += int(card.split(' ')[0])
+        while value > 21 and aces:
+            value -= 10
+            aces -= 1
+        return value
+
+    def next_hand_or_resolve_game(self):
+        self.current_hand_index += 1
+        if self.current_hand_index < len(self.player_hands):
+            self.show_hands()
+            self.prompt_action()
+        else:
+            self.resolve_game()
+
+    def resolve_game(self):
+        while self.calculate_hand_value(self.dealer_hand) < 17:
+            self.dealer_hand.append(self.deal_card())
+
+        print("Dealer's Hand:", '-'.join(self.dealer_hand), "Total:", self.calculate_hand_value(self.dealer_hand))
+
+        for hand in self.player_hands:
+            player_value = self.calculate_hand_value(hand)
+            dealer_value = self.calculate_hand_value(self.dealer_hand)
+
+            if player_value > 21:
+                print("Bust with hand:", '-'.join(hand))
+            elif dealer_value > 21 or player_value > dealer_value:
+                print("You win with hand:", '-'.join(hand))
+                self.account_balance += self.bet_amount
+            elif dealer_value == player_value:
+                print("Push with hand:", '-'.join(hand))
+            else:
+                print("Dealer wins against hand:", ' - '.join(hand))
+                self.account_balance -= self.bet_amount
+
+        self.end_hand()
+
+    def end_hand(self):
+        print(f"Account Balance: ${self.account_balance}")
+        self.bet_amount = 10  # Reset bet amount for the next hand
+        if self.account_balance <= 0:
+            print("Game over! You're out of funds. Get Back To Work!")
+        else:
+            input("----------------------------------------------------------------------Press Enter to start a new hand...")
+            self.start_hand()
+
+# Usage
+game = BlackjackGame()
+game.start_hand()
+
