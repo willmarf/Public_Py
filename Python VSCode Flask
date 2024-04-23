@@ -1,0 +1,32 @@
+from flask import Flask, request, jsonify
+import logging
+
+app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    # Log the entire request headers
+    app.logger.debug("Request Headers: %s", request.headers)
+    # Log the entire JSON payload
+    if request.is_json:
+        data = request.get_json()
+        app.logger.debug("JSON Request: %s", data)
+    else:
+        data = request.get_data()
+        app.logger.debug("Data Request: %s", data)
+    
+    # Respond with a simple JSON message
+    return jsonify(success=True), 200
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+
+
+### add an ngrock location by running the following in ngrock:
+## ngrok http 5000
+## (to hit that 5000) port and you have a publically exposed API
+
+##with NGROCK supplement
