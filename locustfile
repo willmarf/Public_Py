@@ -1,0 +1,17 @@
+from locust import HttpUser, task, between
+
+class WAFTestUser(HttpUser):
+    wait_time = between(0.01, 0.1)
+    host = "https://[cloudflare_vanity_url].com"
+
+    @task
+    def test_login_page(self):
+        self.client.get("/directory/of/login/page/login")
+
+
+### then in bash
+
+###cd to the vscode directory
+### locust -f locustfile.py
+## in browser go to "http://localhost:8089/"
+### execute swarm
